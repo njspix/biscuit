@@ -172,15 +172,14 @@ static void print_meth_average1(FILE *out, char *sample, double *betasum, int64_
     int k0;
 
     // by chromosome meth average
-    unsigned k, t;
+    unsigned k;
     for (k=0; k<c->targets->size; ++k) {
-        t = get_target_v(c->targets, k).tid;
-        print_meth_average_1chrom(out, sample, get_target_v(c->targets,t).name,
-                betasum+k*NCONTXTS, cnt+k*NCONTXTS, c);
+        target_t tgt = get_target_v(c->targets, k);
+        print_meth_average_1chrom(out, sample, tgt.name, betasum+tgt.tid*NCONTXTS, cnt+tgt.tid*NCONTXTS, c);
         // genome-wide
         for (k0=0; k0<NCONTXTS; ++k0) {
-            cnt0[k0] += cnt[k*NCONTXTS+k0];
-            betasum0[k0] += betasum[k*NCONTXTS+k0];
+            cnt0[k0] += cnt[tgt.tid*NCONTXTS+k0];
+            betasum0[k0] += betasum[tgt.tid*NCONTXTS+k0];
         }
     }
 
