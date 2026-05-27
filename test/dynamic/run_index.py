@@ -24,7 +24,8 @@ def run_index(biscuit_dir, out_dir, prefix, ref_path, force):
 
     cmd = f'{biscuit_dir}/biscuit index -p {out_dir}/{prefix} {ref_path}'
     logger.debug(f'{prefix} BISCUIT indexing command: {cmd}')
-    subprocess.run(cmd.split(' '), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with open(f'{out_dir}/{prefix}.out', 'w') as f, open(f'{out_dir}/{prefix}.err', 'w') as err:
+        subprocess.run(cmd.split(' '), stdout=f, stderr=err)
 
     return None
 

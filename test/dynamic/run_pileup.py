@@ -25,7 +25,8 @@ def run_pileup(biscuit_dir, out_dir, prefix, ref_path, align_dir, force):
     logger.info(f'Running {prefix} BISCUIT pileup')
 
     cmd = f'{biscuit_dir}/biscuit pileup -o {out_dir}/{prefix}.vcf {ref_path} {align_dir}/{prefix}.bam'
-    subprocess.run(cmd.split(' '), stderr=subprocess.DEVNULL)
+    with open(f'{out_dir}/{prefix}.vcf.err', 'w') as err:
+        subprocess.run(cmd.split(' '), stderr=err)
 
     return None
 

@@ -25,8 +25,8 @@ def run_vcf2bed(biscuit_dir, out_dir, prefix, vcf_dir, force):
 
     cmd = f'{biscuit_dir}/biscuit vcf2bed {vcf_dir}/{prefix}.vcf'
     logger.debug(f'{prefix} BISCUIT vcf2bed command: {cmd}')
-    with open(f'{out_dir}/{prefix}.bed', 'w') as f:
-        subprocess.run(cmd.split(' '), stdout=f, stderr=subprocess.DEVNULL)
+    with open(f'{out_dir}/{prefix}.bed', 'w') as f, open(f'{out_dir}/{prefix}.bed.err', 'w') as err:
+        subprocess.run(cmd.split(' '), stdout=f, stderr=err)
 
     return None
 

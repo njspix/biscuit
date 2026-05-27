@@ -34,19 +34,20 @@ def run_align(biscuit_dir, out_dir, prefix, idx_path, fq_dir, force):
     # Basic BISCUIT alignment output
     cmd1 = f'{biscuit_dir}/biscuit align {idx_path}/{prefix} {fq_dir}/simulated_1.fastq.gz {fq_dir}/simulated_2.fastq.gz'
     logger.debug(f'{prefix} BISCUIT alignment command: {cmd1}')
-    with open(f'{out_dir}/{prefix}.sam', 'w') as f:
-        subprocess.run(cmd1.split(' '), stdout=f, stderr=subprocess.DEVNULL)
+    with open(f'{out_dir}/{prefix}.sam', 'w') as f, open(f'{out_dir}/{prefix}.sam.err', 'w') as err:
+        subprocess.run(cmd1.split(' '), stdout=f, stderr=err)
 
     # Verbose BISCUIT alignment output
     cmd2 = f'{biscuit_dir}/biscuit align -v 4 {idx_path}/{prefix} {fq_dir}/simulated_1.fastq.gz {fq_dir}/simulated_2.fastq.gz'
     logger.debug(f'{prefix} BISCUIT alignment command: {cmd2}')
-    with open(f'{out_dir}/{prefix}.debug', 'w') as f:
-        subprocess.run(cmd2.split(' '), stdout=f, stderr=subprocess.DEVNULL)
+    with open(f'{out_dir}/{prefix}.debug', 'w') as f, open(f'{out_dir}/{prefix}.debug.err', 'w') as err:
+        subprocess.run(cmd2.split(' '), stdout=f, stderr=err)
 
     # Sort and index basic BISCUIT alignment output (used for downstream tests)
     cmd3 = f'samtools sort -o {out_dir}/{prefix}.bam -O BAM --write-index {out_dir}/{prefix}.sam'
     logger.debug(f'{prefix} BISCUIT alignment command: {cmd3}')
-    subprocess.run(cmd3.split(' '), stderr=subprocess.DEVNULL)
+    with open(f'{out_dir}/{prefix}.bam.err', 'w') as err:
+        subprocess.run(cmd3.split(' '), stderr=err)
 
     return None
 

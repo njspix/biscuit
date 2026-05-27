@@ -26,12 +26,13 @@ def run_bsstrand(biscuit_dir, out_dir, prefix, ref_path, bam_dir, force):
 
     cmd1 = f'{biscuit_dir}/biscuit bsstrand {ref_path} {bam_dir}/{prefix}.bam {out_dir}/{prefix}.bss.bam'
     logger.debug(f'{prefix} BISCUIT bsstrand command: {cmd1}')
-    with open(f'{out_dir}/{prefix}.bss', 'w') as f:
-        subprocess.run(cmd1.split(' '), stdout=subprocess.DEVNULL, stderr=f)
+    with open(f'{out_dir}/{prefix}.bss', 'w') as f, open(f'{out_dir}/{prefix}.bss.out', 'w') as out:
+        subprocess.run(cmd1.split(' '), stdout=out, stderr=f)
 
     cmd2 = f'samtools view -h -o {out_dir}/{prefix}.bss.sam -O SAM {out_dir}/{prefix}.bss.bam'
     logger.debug(f'{prefix} BISCUIT bsstrand command: {cmd2}')
-    subprocess.run(cmd2.split(' '), stderr=subprocess.DEVNULL)
+    with open(f'{out_dir}/{prefix}.bss.sam.err', 'w') as err:
+        subprocess.run(cmd2.split(' '), stderr=err)
 
     return None
 

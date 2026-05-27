@@ -25,8 +25,8 @@ def run_cinread(biscuit_dir, out_dir, prefix, ref_path, bam_dir, force):
 
     cmd = f'{biscuit_dir}/biscuit cinread {ref_path} {bam_dir}/{prefix}.bam'
     logger.debug(f'{prefix} BISCUIT cinread command: {cmd}')
-    with open(f'{out_dir}/{prefix}.cinread', 'w') as f:
-        subprocess.run(cmd.split(' '), stdout=f, stderr=subprocess.DEVNULL)
+    with open(f'{out_dir}/{prefix}.cinread', 'w') as f, open(f'{out_dir}/{prefix}.cinread.err', 'w') as err:
+        subprocess.run(cmd.split(' '), stdout=f, stderr=err)
 
     return None
 

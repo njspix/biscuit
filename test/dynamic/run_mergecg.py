@@ -25,8 +25,8 @@ def run_mergecg(biscuit_dir, out_dir, prefix, ref_path, bed_dir, force):
 
     cmd = f'{biscuit_dir}/biscuit mergecg {ref_path} {bed_dir}/{prefix}.bed'
     logger.debug(f'{prefix} BISCUIT mergecg command: {cmd}')
-    with open(f'{out_dir}/{prefix}.mergecg.bed', 'w') as f:
-        subprocess.run(cmd.split(' '), stdout=f, stderr=subprocess.DEVNULL)
+    with open(f'{out_dir}/{prefix}.mergecg.bed', 'w') as f, open(f'{out_dir}/{prefix}.mergecg.bed.err', 'w') as err:
+        subprocess.run(cmd.split(' '), stdout=f, stderr=err)
 
     return None
 
