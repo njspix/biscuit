@@ -52,7 +52,7 @@ def get_test_files(version):
     return None
 
 def main():
-    get_test_files('v1.7.1.20250908')
+    get_test_files('v1.8.1.20260511')
 
     return None
 
