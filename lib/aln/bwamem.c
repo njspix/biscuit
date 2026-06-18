@@ -398,7 +398,7 @@ static void bis_worker2(void *data, long i, int tid) {
       printf("\n=====> [%s] Finalizing PE read '%s' <=====\n",
              __func__, w->seqs[i<<1|0].name);
 
-    if (!(w->opt->flag & MEM_F_NO_RESCUE)) 
+    if (!(w->opt->flag & MEM_F_NO_RESCUE) && !w->pes.failed)
       mem_alnreg_matesw(w->opt, w->bns, w->pac,
                         w->pes, &w->seqs[i<<1], &w->regs[i<<1]);
 

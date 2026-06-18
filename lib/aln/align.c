@@ -415,7 +415,6 @@ int main_align(int argc, char *argv[]) {
       } else if (c == 'I') { // specify the insert size distribution
           mem_pestat_t *pes = calloc(1, sizeof(mem_pestat_t));
           pes->avg = strtod(optarg, &p);
-          pes->avg = strtod(optarg, &p);
           pes->std = pes->avg * .1;
           if (*p != 0 && ispunct(*p) && isdigit(p[1]))
               pes->std = strtod(p+1, &p);

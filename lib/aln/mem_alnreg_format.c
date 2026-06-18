@@ -579,6 +579,8 @@ void mem_reg2sam_pe(
   
    if (opt->flag & MEM_F_NOPAIRING)
       return mem_reg2sam_pe_nopairing(opt, bns, pac, s, regs_pair, pes);
+   if (pes.failed) // insert size could not be inferred (too few pairs, no -I)
+      return mem_reg2sam_pe_nopairing(opt, bns, pac, s, regs_pair, pes);
    if (regs_pair[0].n_pri == 0 || regs_pair[1].n_pri == 0)
       return mem_reg2sam_pe_nopairing(opt, bns, pac, s, regs_pair, pes);
 
