@@ -73,13 +73,20 @@ typedef struct {
 
 // note: pos1 == isrev1 ? end1 : beg1; pos2 == isrev2 ? end2 : beg2
 static inline int mem_infer_isize(int64_t pos1, int64_t pos2, int isrev1, int isrev2, int len1, int len2, int64_t *isize) {
+  // For a reverse-strand mate, the caller maps its position through
+  // (l_pac<<1)-1-rb, which already yields the rightmost (far) forward
+  // coordinate of the fragment. The forward mate's position is the leftmost.
+  // The template length is therefore simply the difference between the two; do
+  // NOT add the read length, or the insert size is overestimated by one read
+  // length (len1/len2 are kept for the signature but intentionally unused).
+  (void)len1; (void)len2;
   if (isrev1 && !isrev2) {
-    *isize = pos1 - pos2 + len1;
+    *isize = pos1 - pos2;
     return 1;
   } else if (isrev2 && !isrev1) {
-    *isize = pos2 - pos1 + len2;
+    *isize = pos2 - pos1;
     return 1;
-  } else return 0;  
+  } else return 0;
 }
 
 // return 1 (success) or 0 (failure)
