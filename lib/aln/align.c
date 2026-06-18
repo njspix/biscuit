@@ -181,46 +181,29 @@ static void update_a(mem_opt_t *opt, const mem_opt_t *opt0) {
   }
 }
 
-static void infer_alt_chromosomes(bntseq_t *bns) {
-  // logic: if the chr1,...chr22,chrX,chrY,chrM,
-  // then mark everything with chrUn and _random and _hap as alt
+// ALT status is taken solely from the <fai-index base>.alt file (loaded in
+// bns_restore). We deliberately do NOT guess ALT status from contig names:
+// unplaced (chrUn_*) and unlocalized (*_random) contigs are part of the primary
+// assembly, not ALT contigs. Treating them as ALT forces their reads onto the
+// primary chromosomes and produces mismappings and false signal.
+//
+// This helper only warns when the reference appears to contain genuine
+// alternate-locus/haplotype contigs (_alt/_hap) but no .alt file marked any
+// contig as ALT, so the user knows to supply one.
+static void warn_missing_alt_file(bntseq_t *bns) {
   int i;
-  for (i=0; i<bns->n_seqs; ++i) if (bns->anns[i].is_alt) break;
-  if (i<bns->n_seqs) return;    // skip if alt info is present
-  
-  int found[25]; memset(found, 0, 25*sizeof(int));
-  for (i=0; i<bns->n_seqs; ++i) {
-    if (strncmp(bns->anns[i].name, "chr", 3) == 0) {
-      if (strlen(bns->anns[i].name) == 4) {
-        if (toupper(bns->anns[i].name[3]) == 'X') found[22] = 1;
-        else if (toupper(bns->anns[i].name[3]) == 'Y') found[23] = 1;
-        else if (toupper(bns->anns[i].name[3]) == 'M') found[24] = 1;
-        else if (isdigit(bns->anns[i].name[3])) {
-          int n = bns->anns[i].name[3]-'0';
-          if (n>0 && n<=22) found[n-1] = 1;
-        }
-      } else if (strlen(bns->anns[i].name) == 5 &&
-                 isdigit(bns->anns[i].name[3]) && isdigit(bns->anns[i].name[4])) {
-        int n = atoi(bns->anns[i].name+3);
-        if (n>0 && n<=22) found[n-1] = 1;
-      }
-    }
-  }
+  for (i=0; i<bns->n_seqs; ++i) if (bns->anns[i].is_alt) return; // .alt file present
 
-  int n;
-  for (i=n=0; i<25; ++i) if (found[i]) ++n;
-  if (n < 20) return; // should take care of human and mouse
-  
-  for (i=0; i<bns->n_seqs; ++i) {
-    if (strncmp(bns->anns[i].name, "chrUn", 5)==0 || 
-        strstr(bns->anns[i].name, "_random") || 
-        strstr(bns->anns[i].name, "_hap") ||
-        strstr(bns->anns[i].name, "_alt")) {
-      bns->anns[i].is_alt = 1;
-      if (bwa_verbose >= 4)
-        fprintf(stderr, "[M:%s] Set %s as ALT.\n", __func__, bns->anns[i].name);
-    }
-  }
+  int n_alt_like = 0;
+  for (i=0; i<bns->n_seqs; ++i)
+    if (strstr(bns->anns[i].name, "_alt") || strstr(bns->anns[i].name, "_hap"))
+      ++n_alt_like;
+
+  if (n_alt_like > 0)
+    fprintf(stderr, "[M::%s] %d contig(s) look like alternate haplotypes/loci "
+            "(_alt/_hap) but no <fai-index base>.alt file was found; they will be "
+            "treated as part of the primary assembly. Supply a .alt file to mark "
+            "ALT contigs.\n", __func__, n_alt_like);
 }
 
 int usage(mem_opt_t *opt) {
@@ -282,7 +265,6 @@ int usage(mem_opt_t *opt) {
     fprintf(stderr, "Input/output options:\n");
     fprintf(stderr, "    -1 STR          Align a single read STR\n");
     fprintf(stderr, "    -2 STR          Align a read STR paired with -1 read\n");
-    fprintf(stderr, "    -i              Turn off autoinference of ALT chromosomes\n");
     fprintf(stderr, "    -p              Smart pairing (ignores in2.fq)\n");
     fprintf(stderr, "    -R STR          Read group header line (such as '@RG\\tID:foo\\tSM:bar')\n");
     fprintf(stderr, "    -F              Suppress SAM header output\n");
@@ -334,16 +316,14 @@ int main_align(int argc, char *argv[]) {
   aux.opt = opt = mem_opt_init();
   opt->flag |= MEM_F_NO_MULTI;  /* WZBS */
   memset(&opt0, 0, sizeof(mem_opt_t));
-  int auto_infer_alt_chrom = 1;
   if (argc < 2) return usage(opt);
-  while ((c = getopt(argc, argv, ":@:1:2:3:5:9ab:c:d:ef:g:hijk:m:pqr:s:v:w:x:y:z:A:B:CD:E:FG:H:I:J:K:L:MN:O:PQ:R:ST:U:VW:X:Y")) >= 0) {
+  while ((c = getopt(argc, argv, ":@:1:2:3:5:9ab:c:d:ef:g:hjk:m:pqr:s:v:w:x:y:z:A:B:CD:E:FG:H:I:J:K:L:MN:O:PQ:R:ST:U:VW:X:Y")) >= 0) {
       if (c == 'k') opt->min_seed_len = atoi(optarg), opt0.min_seed_len = 1;
       else if (c == '1') aux._seq1 = strdup(optarg);
       else if (c == '2') aux._seq2 = strdup(optarg);
       else if (c == 'x') mode = optarg;
       else if (c == 'b') opt->parent = atoi(optarg);   /* targeting parent or daughter */
       else if (c == 'f') opt->bsstrand = atoi(optarg); /* targeting BSW or BSC */
-      else if (c == 'i') auto_infer_alt_chrom = 0; // turn off auto-inference of alt-chromosomes
       else if (c == 'w') opt->w = atoi(optarg), opt0.w = 1;
       else if (c == 'A') opt->a = atoi(optarg), opt0.a = 1;
       else if (c == 'B') opt->b = atoi(optarg), opt0.b = 1;
@@ -527,9 +507,9 @@ int main_align(int argc, char *argv[]) {
   } else if (bwa_verbose >= 3)
     fprintf(stderr, "[M::%s] load the bwa index from shared memory\n", __func__);
 
-  // infer alternative chromosomes from name
-  if (auto_infer_alt_chrom) infer_alt_chromosomes(aux.idx->bns);
-  
+  // ALT status comes only from the .alt file; warn if it looks missing
+  warn_missing_alt_file(aux.idx->bns);
+
   if (ignore_alt)
     for (i = 0; i < aux.idx->bns->n_seqs; ++i)
       aux.idx->bns->anns[i].is_alt = 0;
