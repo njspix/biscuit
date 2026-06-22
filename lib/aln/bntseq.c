@@ -40,7 +40,7 @@
 KSEQ_DECLARE(gzFile)
 
 #include "khash.h"
-KHASH_MAP_INIT_STR(str, int)
+KHASH_MAP_INIT_STR(names, int)
 
 #ifdef USE_MALLOC_WRAPPERS
 #  include "malloc_wrap.h"
@@ -172,47 +172,57 @@ bntseq_t *bns_restore_core(const char *ann_filename, const char* amb_filename, c
 }
 
 bntseq_t *bns_restore(const char *prefix) {
-  char ann_filename[1024], amb_filename[1024], pac_filename[1024], alt_filename[1024];
-  FILE *fp;
-  bntseq_t *bns;
+    char ann_filename[1024], amb_filename[1024], pac_filename[1024], alt_filename[1024];
+    FILE *fp;
+    bntseq_t *bns;
 
-  /**** bisulfite adaptation ****/
-  /* strcat(strcpy(ann_filename, prefix), ".ann"); */
-  /* strcat(strcpy(amb_filename, prefix), ".amb"); */
-  /* strcat(strcpy(pac_filename, prefix), ".pac"); */
-  strcat(strcpy(ann_filename, prefix), ".bis.ann");
-  strcat(strcpy(amb_filename, prefix), ".bis.amb");
-  strcat(strcpy(pac_filename, prefix), ".bis.pac");
+    /**** bisulfite adaptation ****/
+    strcat(strcpy(ann_filename, prefix), ".bis.ann");
+    strcat(strcpy(amb_filename, prefix), ".bis.amb");
+    strcat(strcpy(pac_filename, prefix), ".bis.pac");
 
-  bns = bns_restore_core(ann_filename, amb_filename, pac_filename);
-  if (bns == 0) return 0;
-  if ((fp = fopen(strcat(strcpy(alt_filename, prefix), ".alt"), "r")) != 0) { // read .alt file if present
-    char str[1024];
-    khash_t(str) *h;
-    int c, i, absent;
-    khint_t k;
-    h = kh_init(str);
-    for (i = 0; i < bns->n_seqs; ++i) {
-      k = kh_put(str, h, bns->anns[i].name, &absent);
-      kh_val(h, k) = i;
-    }
-    i = 0;
-    while ((c = fgetc(fp)) != EOF) {
-      if (c == '\t' || c == '\n' || c == '\r') {
-        str[i] = 0;
-        if (str[0] != '@') {
-          k = kh_get(str, h, str);
-          if (k != kh_end(h))
-            bns->anns[kh_val(h, k)].is_alt = 1;
+    bns = bns_restore_core(ann_filename, amb_filename, pac_filename);
+    if (bns == 0) return 0;
+    if ((fp = fopen(strcat(strcpy(alt_filename, prefix), ".alt"), "r")) != 0) { // read .alt file if present
+        char str[1024];
+        khash_t(names) *h;
+        int c, i, absent;
+        khint_t k;
+        h = kh_init(names);
+        for (i = 0; i < bns->n_seqs; ++i) {
+            k = kh_put(names, h, bns->anns[i].name, &absent);
+            kh_val(h, k) = i;
         }
-        while (c != '\n' && c != EOF) c = fgetc(fp);
         i = 0;
-      } else str[i++] = c; // FIXME: potential segfault here
+        while ((c = fgetc(fp)) != EOF) {
+            if (c == '\t' || c == '\n' || c == '\r') {
+                str[i] = 0;
+                // If .alt file is built by grepping for "_alt" or "_hap" from a FASTA or FASTQ file,
+                // then we need to shift the start point for the string so we can correctly search
+                // for the name from the index, which stripped these characters off
+                if (str[0] == '@' || str[0] == '>') {
+                    k = kh_get(names, h, str+1);
+                } else {
+                    k = kh_get(names, h, str);
+                }
+                if (k != kh_end(h)) {
+                    bns->anns[kh_val(h, k)].is_alt = 1;
+                }
+                while (c != '\n' && c != EOF) c = fgetc(fp);
+                i = 0;
+            } else {
+                // Resolves lingering potential seg fault comment
+                if (i >= 1022) {
+                    fprintf(stderr, "[E::%s] sequence name longer than 1023 characters. Abort!\n", __func__);
+                    exit(1);
+                }
+                str[i++] = c;
+            }
+        }
+        kh_destroy(names, h);
+        fclose(fp);
     }
-    kh_destroy(str, h);
-    fclose(fp);
-  }
-  return bns;
+    return bns;
 }
 
 void bns_destroy(bntseq_t *bns) {
