@@ -134,18 +134,59 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const bwt_t
 /*    return 0; */
 /* } */
 
-// filter seed with T(ref)>C(read) or A(ref)>G(read)
-static int asymmetric_flt_seed(
-   const uint8_t *rseq, const uint8_t *query, const mem_seed_t *s, int64_t rbeg) {
-   
-   int i;
-   const uint8_t *r;
-   for (i=0, r=rseq + s->rbeg - rbeg; i<s->len; ++i, ++r) {
-      if ((*r == 3 && query[s->qbeg+i] == 1) ||
-          (*r == 0 && query[s->qbeg+i] == 2))
-         return 1;
+// A base violates the asymmetric scoring matrix if it is T(ref)>C(read) or
+// A(ref)>G(read): bisulfite converts C>T (and G>A on the daughter strand),
+// never the reverse. Seeding runs on the 3-letter index where C and T collapse,
+// so bwt_smem1() cannot tell a legitimate C>T from an impossible T>C and will
+// extend a seed straight through one.
+static inline int asymmetric_violating_base(uint8_t r, uint8_t q) {
+   return (r == 3 && q == 1) || (r == 0 && q == 2);
+}
+
+/* Trim a seed to its longest sub-interval free of asymmetric-scoring
+ * violations, instead of discarding the whole seed.
+ *
+ * Discarding is too blunt. bwt_smem1() emits SUPER-maximal exact matches, so a
+ * single violating base -- e.g. a real T>C SNP, which bisulfite data carries
+ * just as WGS data does -- sits inside the one maximal seed covering the locus,
+ * and no shorter clean seed is ever emitted to fall back on. The chain is left
+ * with no seed at all and the locus disappears silently, letting a worse locus
+ * win unopposed at high mapq. Compare the author's note on the analogous
+ * forward-reverse boundary case in mem_chain(): "TODO: split the seed; don't
+ * discard it!!!".
+ *
+ * Trimming preserves the invariant that motivates the check in the first place:
+ * mem_chain2region1() credits the seed span s->len * opt->a as an exact match
+ * WITHOUT scoring it through ctmat/gamat, so the span must not contain a
+ * violating base (it would be scored +a, as a match). A trimmed span still
+ * satisfies that. The flanks are then extended by ksw_extend2() under the
+ * asymmetric matrix, which charges a violating base the ordinary -b -- so the
+ * violation is penalised rather than either ignored or fatal.
+ *
+ * Returns 0 if the seed is already clean (*out untouched), 1 if it was trimmed
+ * (*out holds the trimmed copy; caller must check it is still long enough).
+ */
+static int asymmetric_trim_seed(
+   const uint8_t *rseq, const uint8_t *query, const mem_seed_t *s,
+   int64_t rbeg, mem_seed_t *out) {
+
+   int i, run_beg = 0, best_beg = 0, best_len = 0;
+   const uint8_t *r = rseq + s->rbeg - rbeg;
+   for (i = 0; i <= s->len; ++i) {
+      // close the current clean run at a violating base, or at the seed end
+      if (i == s->len || asymmetric_violating_base(r[i], query[s->qbeg+i])) {
+         if (i - run_beg > best_len) { best_len = i - run_beg; best_beg = run_beg; }
+         run_beg = i + 1;
+      }
    }
-   return 0;
+   if (best_len == s->len) return 0;  // clean; nothing to do
+
+   *out = *s;
+   out->qbeg  = s->qbeg + best_beg;
+   out->rbeg  = s->rbeg + best_beg;   // same diagonal: rbeg-qbeg is preserved
+   out->len   = best_len;
+   out->score = best_len;             // a seed's score is its length, cf. mem_chain()
+   return 1;
 }
    
 
@@ -752,10 +793,18 @@ void mem_chain2region1(
    ks_introsort_64(seeds->n, srt);
 
    int k; unsigned u;
+   mem_seed_t strim;
    for (k = seeds->n - 1; k >= 0; --k) { // loop from best scored seed to least
       const mem_seed_t *s = seeds->a + (uint32_t)srt[k];
 
-      if (asymmetric_flt_seed(rseq, query, s, rmax[0])) continue;
+      // Trim, don't discard: a seed spanning an asymmetric-scoring violation is
+      // cut back to its longest clean stretch and extended from there. Only skip
+      // it if nothing usable survives. Trimming uses a local copy so the chain's
+      // own seeds (and hence seedcov below) are left intact.
+      if (asymmetric_trim_seed(rseq, query, s, rmax[0], &strim)) {
+         if (strim.len < opt->min_seed_len) continue; // no clean stretch worth extending
+         s = &strim;
+      }
       
       // test whether extension has been made before
       for (u = reg0; u < regs->n; ++u) {
