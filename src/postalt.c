@@ -206,13 +206,24 @@ static int postalt_func(bam1_t *b, samFile *out, bam_hdr_t *h, void *data) {
   int bestNM = hits[0].nm, i;
   for (i = 1; i < nhit; ++i) if (hits[i].nm < bestNM) bestNM = hits[i].nm;
 
-  int best_pri = -1;   // index of best good-primary hit
-  int n_pri_loci = 0;  // distinct primary loci among good primaries
-  int loc_tid[256]; long loc_pos[256];
-  int win = b->core.l_qseq > 0 ? b->core.l_qseq : 50;
+  /* best near-equal primary hit -> the promotion target (uses nm_delta) */
+  int best_pri = -1;
   for (i = 0; i < nhit; ++i) {
     if (!hits[i].is_pri || hits[i].nm > bestNM + c->nm_delta) continue;
     if (best_pri < 0 || hits[i].nm < hits[best_pri].nm) best_pri = i;
+  }
+
+  /* mask decision: count DISTINCT PRIMARY loci at ANY score (biscuit already
+     filtered XA to near-best via its drop ratio, so every listed primary is a
+     real competitor), plus the number of unplaced hits. We only restore MAPQ
+     with positive evidence: exactly one primary locus AND >=1 unplaced hit that
+     explains biscuit's low MAPQ. An empty XA (n_unplaced==0) means the low MAPQ
+     came from something biscuit did not list -- leave it masked. */
+  int n_pri_loci = 0, n_unplaced = 0;
+  int loc_tid[256]; long loc_pos[256];
+  int win = b->core.l_qseq > 0 ? b->core.l_qseq : 50;
+  for (i = 0; i < nhit; ++i) {
+    if (!hits[i].is_pri) { n_unplaced++; continue; }
     int j, dup = 0;
     for (j = 0; j < n_pri_loci; ++j)
       if (loc_tid[j] == hits[i].tid && labs((long)hits[i].pos - loc_pos[j]) <= win) { dup = 1; break; }
@@ -258,13 +269,17 @@ static int postalt_func(bam1_t *b, samFile *out, bam_hdr_t *h, void *data) {
     if (did_lift) c->n_lift++;
   }
 
-  /* (2) mapq policy over distinct primary loci */
-  if (n_pri_loci == 1) {
+  /* (2) restore MAPQ only with positive evidence the ambiguity is unplaced:
+     the (possibly lifted) record sits on the sole primary locus AND >=1 unplaced
+     hit explains biscuit's low MAPQ. Never restore on an empty XA or when any
+     other primary locus competes. */
+  int final_on_primary = rec_pri || did_lift;
+  if (final_on_primary && n_pri_loci == 1 && n_unplaced >= 1) {
     if (b->core.qual < c->mapq_unique) { b->core.qual = c->mapq_unique; c->n_restore++; }
   } else if (n_pri_loci >= 2) {
-    c->n_multi++;                       // leave as-is (genuine ambiguity)
+    c->n_multi++;                       // genuine multi-primary: leave masked
   } else {
-    c->n_pure_unplaced++;               // no good primary hit: leave as-is
+    c->n_pure_unplaced++;               // no unplaced evidence / unplaced-only: leave
   }
 
   free(xa_dup);
