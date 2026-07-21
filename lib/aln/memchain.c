@@ -110,30 +110,6 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const bwt_t
  * mem_seed_t *
  **************/
 
-/* filtering seed if it violates asymmetric scoring */
-/* static int asymmetric_flt_seed( */
-/*    mem_seed_t *s, const uint8_t *pac, const bntseq_t *bns, bseq1_t *bseq) { */
-   
-/*    int is_rev; */
-/*    bwtint_t pos = bns_depos(bns, s->rbeg, &is_rev); */
-/*    if (is_rev) pos -= s->len - 1; */
-/*    int64_t rb = s->rbeg; */
-/*    int64_t re = rb + s->len; */
-/*    int rid; */
-/*    uint8_t *ref = bns_fetch_seq(bns, pac, &rb, (rb+re)>>1, &re, &rid); */
-/*    int i; */
-/*    for (i=0; i<s->len; ++i) { */
-/*       /\* filter seeds with T(ref)>C(read) or A(ref)>G(read) *\/ */
-/*       if ((ref[i]==3&&bseq->seq[s->qbeg+i]==1) || */
-/*           (ref[i]==0&&bseq->seq[s->qbeg+i]==2)) { */
-/*          free(ref); */
-/*          return 1; */
-/*       } */
-/*    } */
-/*    free(ref); */
-/*    return 0; */
-/* } */
-
 // A base violates the asymmetric scoring matrix if it is T(ref)>C(read) or
 // A(ref)>G(read): bisulfite converts C>T (and G>A on the daughter strand),
 // never the reverse. Seeding runs on the 3-letter index where C and T collapse,
