@@ -38,13 +38,11 @@
  * Merge mem_alnreg_t *
  **********************/
 
-// sort by 1) bss; 2) ref end;
-// #define alnreg_slt2(a, b) ((a).bss < (b).bss || ((a).bss == (b).bss && ((a).re < (b).re)))
+// sort by ref end
 #define alnreg_slt2(a, b) ((a).re < (b).re)
 KSORT_INIT(mem_ars2, mem_alnreg_t, alnreg_slt2)
 
-// sort by 1) bss; 2) score; 3) ref begin; 4) query begin
-// #define alnreg_slt(a, b) ((a).bss < (b).bss || ((a).bss == (b).bss && ((a).score > (b).score || ((a).score == (b).score && ((a).rb < (b).rb || ((a).rb == (b).rb && (a).qb < (b).qb))))))
+// sort by 1) score; 2) ref begin; 3) query begin
 #define alnreg_slt(a, b) ((a).score > (b).score || ((a).score == (b).score && ((a).rb < (b).rb || ((a).rb == (b).rb && (a).qb < (b).qb))))
 KSORT_INIT(mem_ars, mem_alnreg_t, alnreg_slt)
 
@@ -125,11 +123,10 @@ void mem_sort_deduplicate(const mem_opt_t *opt, const bntseq_t *bns, const uint8
 
     mem_alnreg_t *p = regs->a+i;
 
-    // compare with all previous chains with the same bss (bisulfite conversion strand),
-    // rid (chromosome) and with opt->max_chain_gap distance from p
+    // compare with all previous chains with the same rid (chromosome)
+    // and with opt->max_chain_gap distance from p
     int j;
     for (j = i - 1; j >= 0 &&
-        // p->bss == regs->a[j].bss && 
         p->rid == regs->a[j].rid && 
         p->rb < regs->a[j].re + opt->max_chain_gap; --j) {
 
