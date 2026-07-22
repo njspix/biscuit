@@ -46,7 +46,7 @@ def main(biscuit_dir, out_dir, ref_path, bam_dir, force):
 
     for ext in ['.bss.sam', '.bss']:
         if compare_files.compare_files(ext, f'../data/dynamic/{out_dir}/current', f'{out_dir}/new'):
-            logger.info(f'*.{ext} match')
+            logger.info(f'*{ext} match')
         else:
             diffs = compare_files.compare_line_by_line(ext, f'../data/dynamic/{out_dir}/current', f'{out_dir}/new')
             n_diffs = 0
