@@ -44,7 +44,6 @@ def read_config():
 def main():
     # Runtime configuration
     conf = read_config()
-    print(conf)
     if conf['verbose']:
         logger.setLevel(logging.DEBUG)
         logger.debug('Exact mismatches will be shown')
@@ -52,7 +51,7 @@ def main():
     # Reference FASTA
     REF = '../data/ref/chr22.fa.gz'
     if not check_path(REF) or not check_path(f'{REF}.fai'):
-        print('Reference FASTA missing. Please move up a directory and run `setup_tests.py` to retrieve.')
+        logger.error('Reference FASTA missing. Please move up a directory and run `setup_tests.py` to retrieve.')
         sys.exit(1)
 
     # New BISCUIT version
@@ -62,7 +61,7 @@ def main():
     elif check_path('../../build/src') and check_path('../../build/src/biscuit'):
         NEW = '../../build/src'
     else:
-        print('Have you compiled BISCUIT yet?')
+        logger.error('Have you compiled BISCUIT yet?')
         sys.exit(1)
 
     logger.info(f'Reference path: {REF}')
