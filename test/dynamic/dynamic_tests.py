@@ -45,8 +45,20 @@ def main():
     # Runtime configuration
     conf = read_config()
     if conf['verbose']:
+        # Set top logging level
         logger.setLevel(logging.DEBUG)
         logger.debug('Exact mismatches will be shown')
+
+        # Set imported module logging levels
+        logging.getLogger('run_index').setLevel(logging.DEBUG)
+        logging.getLogger('run_align').setLevel(logging.DEBUG)
+        logging.getLogger('run_pileup').setLevel(logging.DEBUG)
+        logging.getLogger('run_vcf2bed').setLevel(logging.DEBUG)
+        logging.getLogger('run_mergecg').setLevel(logging.DEBUG)
+        logging.getLogger('run_bsconv').setLevel(logging.DEBUG)
+        logging.getLogger('run_bsstrand').setLevel(logging.DEBUG)
+        logging.getLogger('run_cinread').setLevel(logging.DEBUG)
+        logging.getLogger('run_tview').setLevel(logging.DEBUG)
 
     # Reference FASTA
     REF = '../data/ref/chr22.fa.gz'
