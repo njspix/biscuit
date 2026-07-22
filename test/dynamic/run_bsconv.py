@@ -49,10 +49,14 @@ def main(biscuit_dir, out_dir, ref_path, bam_dir, force):
                 continue
             else:
                 n_diffs += 1
-                print(f'line {idx}\n\tOLD -- {l_current}\n\tNEW -- {l_new}')
+                logger.debug(f'line {idx} --- OLD --- {l_current}')
+                logger.debug(f'line {idx} --- NEW --- {l_new}')
 
         if n_diffs > 0:
-            logger.error(f'Mismatch in files: *.bsconv - see above for differences')
+            if logger.level == logging.DEBUG:
+                logger.error(f'Mismatch in files: *.bsconv - see above to see differences')
+            else:
+                logger.error(f'Mismatch in files: *.bsconv - set `verbose = true` in config.toml to see differences')
             sys.exit(1)
         else:
             logger.warning(f'Mismatch only in @PG tag(s) in files: *.bsconv')

@@ -55,7 +55,8 @@ def main(biscuit_dir, out_dir, ref_path, align_dir, force):
                     elif l_current.startswith('#CHROM') and l_new.startswith('#CHROM'):
                         continue
                     else:
-                        print(f'line {idx}\n\tOLD -- {l_current}\n\tNEW -- {l_new}')
+                        logger.debug(f'line {idx} --- OLD --- {l_current}')
+                        logger.debug(f'line {idx} --- NEW --- {l_new}')
                         n_diffs += 1
                 elif ext == '.vcf_meth_average.tsv':
                     r_current = l_current.replace('current', 'sample')
@@ -64,12 +65,16 @@ def main(biscuit_dir, out_dir, ref_path, align_dir, force):
                     if r_current == r_new:
                         continue
                     else:
-                        print(f'line {idx}\n\tOLD -- {l_current}\n\tNEW -- {l_new}')
+                        logger.debug(f'line {idx} --- OLD --- {l_current}')
+                        logger.debug(f'line {idx} --- NEW --- {l_new}')
                         n_diffs += 1
 
 
             if n_diffs > 0:
-                logger.error(f'Mismatch in files: *{ext} - see above for differences')
+                if logger.level == logging.DEBUG:
+                    logger.error(f'Mismatch in files: *{ext} - see above to see differences')
+                else:
+                    logger.error(f'Mismatch in files: *{ext} - set `verbose = true` in config.toml to see differences')
                 sys.exit(1)
             elif ext == '.vcf_meth_average.tsv':
                 logger.warning(f'Mismatch only in sample name(s) in files: *{ext}')
