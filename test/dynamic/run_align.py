@@ -4,6 +4,7 @@ import sys
 import os
 
 import compare_files
+import check_alignments
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,9 @@ def main(biscuit_dir, out_dir, idx_path, force):
         os.makedirs(out_dir)
 
     run_align(biscuit_dir, out_dir, 'new', idx_path, '../data', force)
+
+    # Check alignment accuracy before comparing files to ensure we get this comparison
+    check_alignments.main(f'../data/dynamic/{out_dir}/current.sam', f'{out_dir}/new.sam')
 
     for ext in ['.sam', '.debug']:
         if compare_files.compare_files(ext, f'../data/dynamic/{out_dir}/current', f'{out_dir}/new'):

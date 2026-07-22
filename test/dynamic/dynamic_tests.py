@@ -5,6 +5,7 @@ import os
 
 import run_index
 import run_align
+import check_alignments
 import run_pileup
 import run_vcf2bed
 import run_mergecg
@@ -23,7 +24,7 @@ def setup_logger():
 
     at the top of its file to become children of this main logger
     """
-    FORMAT = "[{levelname:<7}] {asctime} - {name:<12} :: {funcName:<15} - {message}"
+    FORMAT = "[{levelname:<7}] {asctime} - {name:<16} :: {funcName:<15} - {message}"
     logging.basicConfig(format=FORMAT, style="{", level=logging.INFO)
 
     return logging.getLogger(__name__)
@@ -52,6 +53,7 @@ def main():
         # Set imported module logging levels
         logging.getLogger('run_index').setLevel(logging.DEBUG)
         logging.getLogger('run_align').setLevel(logging.DEBUG)
+        logging.getLogger('check_alignments').setLevel(logging.DEBUG)
         logging.getLogger('run_pileup').setLevel(logging.DEBUG)
         logging.getLogger('run_vcf2bed').setLevel(logging.DEBUG)
         logging.getLogger('run_mergecg').setLevel(logging.DEBUG)
