@@ -42,6 +42,13 @@ def read_config():
     return data
 
 def main():
+    # Runtime configuration
+    conf = read_config()
+    print(conf)
+    if conf['verbose']:
+        logger.setLevel(logging.DEBUG)
+        logger.debug('Exact mismatches will be shown')
+
     # Reference FASTA
     REF = '../data/ref/chr22.fa.gz'
     if not check_path(REF) or not check_path(f'{REF}.fai'):
@@ -58,14 +65,14 @@ def main():
         print('Have you compiled BISCUIT yet?')
         sys.exit(1)
 
-    # Runtime configuration
-    conf = read_config()
-
     logger.info(f'Reference path: {REF}')
     logger.info(f'New BISCUIT path: {NEW}')
     for outer_key, dic in conf.items():
-        for inner_key, value in dic.items():
-            logger.info(f'Runtime configuration: {outer_key}.{inner_key} = {value}')
+        try:
+            for inner_key, value in dic.items():
+                logger.info(f'Runtime configuration: {outer_key}.{inner_key} = {value}')
+        except AttributeError: # not a dictionary
+            logger.info(f'Runtime configuration: {outer_key} = {dic}')
 
     if conf['run']['index']:
         run_index.main(NEW, '00_index', REF, conf['force']['index'])
