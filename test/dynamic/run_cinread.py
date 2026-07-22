@@ -46,7 +46,7 @@ def main(biscuit_dir, out_dir, ref_path, bam_dir, force):
             idx, l_current, l_new = diff
             print(f'line {idx}\n\tOLD -- {l_current}\n\tNEW -- {l_new}')
 
-            logger.error(f'Mismatch in files: *.cinread - see above for differences')
-            sys.exit(1)
+        logger.error(f'Mismatch in files: *.cinread - see above for differences')
+        sys.exit(1)
 
     return None
