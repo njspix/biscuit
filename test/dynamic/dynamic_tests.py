@@ -5,6 +5,7 @@ import os
 
 import run_index
 import run_align
+import check_alignments
 import run_pileup
 import run_vcf2bed
 import run_mergecg
@@ -23,7 +24,7 @@ def setup_logger():
 
     at the top of its file to become children of this main logger
     """
-    FORMAT = "[{levelname:<7}] {asctime} - {name:<12} :: {funcName:<15} - {message}"
+    FORMAT = "[{levelname:<7}] {asctime} - {name:<16} :: {funcName:<15} - {message}"
     logging.basicConfig(format=FORMAT, style="{", level=logging.INFO)
 
     return logging.getLogger(__name__)
@@ -42,10 +43,29 @@ def read_config():
     return data
 
 def main():
+    # Runtime configuration
+    conf = read_config()
+    if conf['verbose']:
+        # Set top logging level
+        logger.setLevel(logging.DEBUG)
+        logger.debug('Exact mismatches will be shown')
+
+        # Set imported module logging levels
+        logging.getLogger('run_index').setLevel(logging.DEBUG)
+        logging.getLogger('run_align').setLevel(logging.DEBUG)
+        logging.getLogger('check_alignments').setLevel(logging.DEBUG)
+        logging.getLogger('run_pileup').setLevel(logging.DEBUG)
+        logging.getLogger('run_vcf2bed').setLevel(logging.DEBUG)
+        logging.getLogger('run_mergecg').setLevel(logging.DEBUG)
+        logging.getLogger('run_bsconv').setLevel(logging.DEBUG)
+        logging.getLogger('run_bsstrand').setLevel(logging.DEBUG)
+        logging.getLogger('run_cinread').setLevel(logging.DEBUG)
+        logging.getLogger('run_tview').setLevel(logging.DEBUG)
+
     # Reference FASTA
     REF = '../data/ref/chr22.fa.gz'
     if not check_path(REF) or not check_path(f'{REF}.fai'):
-        print('Reference FASTA missing. Please move up a directory and run `setup_tests.py` to retrieve.')
+        logger.error('Reference FASTA missing. Please move up a directory and run `setup_tests.py` to retrieve.')
         sys.exit(1)
 
     # New BISCUIT version
@@ -55,17 +75,17 @@ def main():
     elif check_path('../../build/src') and check_path('../../build/src/biscuit'):
         NEW = '../../build/src'
     else:
-        print('Have you compiled BISCUIT yet?')
+        logger.error('Have you compiled BISCUIT yet?')
         sys.exit(1)
-
-    # Runtime configuration
-    conf = read_config()
 
     logger.info(f'Reference path: {REF}')
     logger.info(f'New BISCUIT path: {NEW}')
     for outer_key, dic in conf.items():
-        for inner_key, value in dic.items():
-            logger.info(f'Runtime configuration: {outer_key}.{inner_key} = {value}')
+        try:
+            for inner_key, value in dic.items():
+                logger.info(f'Runtime configuration: {outer_key}.{inner_key} = {value}')
+        except AttributeError: # not a dictionary
+            logger.info(f'Runtime configuration: {outer_key} = {dic}')
 
     if conf['run']['index']:
         run_index.main(NEW, '00_index', REF, conf['force']['index'])

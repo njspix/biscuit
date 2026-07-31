@@ -19,3 +19,6 @@ force.bsconv = false
 force.bsstrand = false
 force.cinread = false
 force.tview = false # placeholder, leave as false
+
+# Verbosity level - print differences between files (true) or not (false)
+verbose = false

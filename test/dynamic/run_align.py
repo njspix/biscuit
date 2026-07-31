@@ -4,6 +4,7 @@ import sys
 import os
 
 import compare_files
+import check_alignments
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,9 @@ def main(biscuit_dir, out_dir, idx_path, force):
 
     run_align(biscuit_dir, out_dir, 'new', idx_path, '../data', force)
 
+    # Check alignment accuracy before comparing files to ensure we get this comparison
+    check_alignments.main(f'../data/dynamic/{out_dir}/current.sam', f'{out_dir}/new.sam')
+
     for ext in ['.sam', '.debug']:
         if compare_files.compare_files(ext, f'../data/dynamic/{out_dir}/current', f'{out_dir}/new'):
             logger.info(f'*{ext} match')
@@ -71,10 +75,14 @@ def main(biscuit_dir, out_dir, idx_path, force):
                     continue
                 else:
                     n_diffs += 1
-                    print(f'line {idx}\n\tOLD -- {l_current}\n\tNEW -- {l_new}')
+                    logger.debug(f'line {idx} --- OLD --- {l_current}')
+                    logger.debug(f'line {idx} --- NEW --- {l_new}')
 
             if n_diffs > 0:
-                logger.error(f'Mismatch in files: *{ext} - see above for differences')
+                if logger.level == logging.DEBUG:
+                    logger.error(f'Mismatch in files: *{ext} - see above to see differences')
+                else:
+                    logger.error(f'Mismatch in files: *{ext} - set `verbose = true` in config.toml to see differences')
                 sys.exit(1)
             else:
                 logger.warning(f'Mismatch only in @PG tag(s) in files: *{ext}')

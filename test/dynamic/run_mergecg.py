@@ -44,9 +44,13 @@ def main(biscuit_dir, out_dir, ref_path, bed_dir, force):
         diffs = compare_files.compare_line_by_line('.mergecg.bed', f'../data/dynamic/{out_dir}/current', f'{out_dir}/new')
         for diff in diffs:
             idx, l_current, l_new = diff
-            print(f'line {idx}\n\tOLD -- {l_current}\n\tNEW -- {l_new}')
+            logger.debug(f'line {idx} --- OLD --- {l_current}')
+            logger.debug(f'line {idx} --- NEW --- {l_new}')
 
-            logger.error(f'Mismatch in files: *.mergecg.bed - see above for differences')
-            sys.exit(1)
+        if logger.level == logging.DEBUG:
+            logger.error(f'Mismatch in files: *.mergecg.bed - see above to see differences')
+        else:
+            logger.error(f'Mismatch in files: *.mergecg.bed - set `verbose = true` in config.toml to see differences')
+        sys.exit(1)
 
     return None

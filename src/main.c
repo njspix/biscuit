@@ -62,6 +62,7 @@ int main_rectangle(int argc, char *argv[]);
 int main_qc(int argc, char *argv[]);
 int main_qc_coverage(int argc, char *argv[]);
 int main_bc(int argc, char *argv[]);
+int main_postalt(int argc, char *argv[]);
 
 static int usage() {
     fprintf(stderr, "\n");
@@ -81,6 +82,7 @@ static int usage() {
     fprintf(stderr, "    tview        Text alignment viewer with bisulfite coloring\n");
     fprintf(stderr, "    bsstrand     Validate/correct bisulfite conversion strand label (YD tag)\n");
     fprintf(stderr, "    bsconv       Summarize/filter reads by bisulfite conversion (ZN tag)\n");
+    fprintf(stderr, "    postalt      Prefer primary chromosomes over unplaced/alt contigs (XA)\n");
     fprintf(stderr, "    cinread      Print cytosine-read pair in a long form\n");
     fprintf(stderr, "\n");
     fprintf(stderr, " -- Base summary\n");
@@ -129,6 +131,7 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[1], "qc") == 0) ret = main_qc(argc-1, argv+1);
     else if (strcmp(argv[1], "qc_coverage") == 0) ret = main_qc_coverage(argc-1, argv+1);
     else if (strcmp(argv[1], "bc") == 0) ret = main_bc(argc-1, argv+1);
+    else if (strcmp(argv[1], "postalt") == 0) ret = main_postalt(argc-1, argv+1);
     else if (strcmp(argv[1], "help") == 0) {
         usage();
         return 0;

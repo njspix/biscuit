@@ -301,20 +301,24 @@ void mem_alnreg_formatSAM(
         kputl(m.pos + 1, str); kputc('\t', str);
         if (p.rid == m.rid) {
 
-            // the following calculation of insert size is different from BWA
-            int64_t p0 = -1, p1 = -1;
-            if (p.is_rev) p1 = p.pos + get_rlen(p.n_cigar, p.cigar) - 1;
-            else p0 = p.pos;
-            if (m.is_rev) p1 = m.pos + get_rlen(m.n_cigar, m.cigar) - 1;
-            else p0 = m.pos;
-            if (p.n_cigar > 0 && m.n_cigar > 0 && p0 >= 0 && p1 >= 0) kputl(p1-p0+1, str);
-            else kputc('0', str);
-
-            // the BWA way
-            // int64_t p0 = p.pos + (p.is_rev? get_rlen(p.n_cigar, p.cigar) - 1 : 0);
-            // int64_t p1 = m.pos + (m.is_rev? get_rlen(m.n_cigar, m.cigar) - 1 : 0);
-            // if (m.n_cigar == 0 || p.n_cigar == 0) kputc('0', str);
-            // else kputl(-(p0 - p1 + (p0 > p1? 1 : p0 < p1? -1 : 0)), str);
+            // TLEN (SAM col 9). The sign is POSITIONAL, not orientational: SAM
+            // v1.6 says the leftmost segment gets '+' and the rightmost '-'.
+            // p0/p1 must therefore be THIS record's vs the MATE's outermost
+            // coordinate, so that p0/p1 swap between the two mates and the sign
+            // flips. The previous biscuit version keyed p0/p1 on strand instead
+            // (p0 = whichever mate is forward, p1 = whichever is reverse), which
+            // yields the same value for both mates and so emitted a positive
+            // TLEN on both -- reported by lh3 in huishenlab/biscuit#76. The
+            // magnitude is unchanged (inclusive leftmost..rightmost span); only
+            // the rightmost mate's sign is restored. The (p0>p1?1:p0<p1?-1:0)
+            // term covers the tie case the spec leaves undefined. Note that
+            // mem_infer_isize() stays unsigned on purpose -- its callers
+            // (is_proper_pair, mem_pair) compare against pes.low/pes.high and
+            // need a length, not a signed value.
+            int64_t p0 = p.pos + (p.is_rev? get_rlen(p.n_cigar, p.cigar) - 1 : 0);
+            int64_t p1 = m.pos + (m.is_rev? get_rlen(m.n_cigar, m.cigar) - 1 : 0);
+            if (m.n_cigar == 0 || p.n_cigar == 0) kputc('0', str);
+            else kputl(-(p0 - p1 + (p0 > p1? 1 : p0 < p1? -1 : 0)), str);
         } else kputc('0', str);
     } else kputsn("*\t0\t0", 5, str);
     kputc('\t', str);
