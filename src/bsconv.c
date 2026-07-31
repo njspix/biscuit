@@ -1,8 +1,8 @@
 /* annotate bisulfite conversion of reads
- * * The MIT License (MIT)
+ * The MIT License (MIT)
  *
  * Copyright (c) 2016-2020 Wanding.Zhou@vai.org
- * 2021-2026 Jacob.Morrison@vai.org
+ *               2021-2026 Jacob.Morrison@vai.org
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -79,8 +79,8 @@ int bsconv_func(bam1_t *b, samFile *out, bam_hdr_t *hdr, void *data) {
                     fivenuc_context(d->rs, rpos+j, rb, fivenuc);
 
                     // Exclude terminal bases from filtering counts if within -5 or -3 windows
-                    if (current_qpos < (uint32_t)conf->ignore_5prime || 
-                        current_qpos >= (uint32_t)(c->l_qseq - conf->ignore_3prime)) {
+                    if (current_qpos+1 <= (uint32_t)conf->ignore_5prime ||
+                        c->l_qseq < (int32_t)(current_qpos+1 + conf->ignore_3prime)) {
                         continue;
                     }
 
@@ -209,10 +209,10 @@ static void usage() {
     fprintf(stderr, "    -c INT      Filter: maximum CpC retention [Inf]\n");
     fprintf(stderr, "    -t INT      Filter: maximum CpT retention [Inf]\n");
     fprintf(stderr, "    -x INT      Filter: maximum CpY retention [Inf]\n");
-    fprintf(stderr, "    -5 INT      Ignore INT bases from 5' end of read for filtering [0]\n");
-    fprintf(stderr, "    -3 INT      Ignore INT bases from 3' end of read for filtering [0]\n");
+    fprintf(stderr, "    -5 INT      Minimum distance to 5' end of a read (bases closer to the start will not be considered) [0]\n");
+    fprintf(stderr, "    -3 INT      Minimum distance to 3' end of a read (bases closer to the end will not be considered) [0]\n");
     fprintf(stderr, "    -p          Print in tab-separated format, print order:\n");
-    fprintf(stderr, "                CpA_R, CpA_C, CpC_R, CpC_C, CpG_R, CpG_C, CpT_R, CpT_C\n");
+    fprintf(stderr, "                    CpA_R, CpA_C, CpC_R, CpC_C, CpG_R, CpG_C, CpT_R, CpT_C\n");
     fprintf(stderr, "    -v          Show filtered reads instead of remaining reads\n");
     fprintf(stderr, "    -h          This help\n");
     fprintf(stderr, "\n");
@@ -226,7 +226,7 @@ int main_bsconv(int argc, char *argv[]) {
     conf.max_cph_frac = 1.0;
     conf.max_cpy_frac = 1.0;
     conf.print_in_tab = 0;
-    conf.no_printing = 0; 
+    conf.no_printing = 0; // only needed for qc at this time, so don't provide a command line argument to change this for now
     conf.ignore_5prime = 0;
     conf.ignore_3prime = 0;
 
